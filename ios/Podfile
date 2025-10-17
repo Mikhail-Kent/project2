@@ -1,17 +1,13 @@
-# Поддержка минимальной версии iOS
 platform :ios, '12.0'
 
-# === Исправленный Flutter root ===
 flutter_root = `flutter --version --machine | grep -o '"flutterRoot": *"[^"]*"' | cut -d '"' -f4`.strip
 if flutter_root.empty?
-  puts "⚠️  Flutter SDK path not found automatically, using environment variable..."
   flutter_root = ENV['FLUTTER_ROOT'] || ''
 end
 
-# Проверяем существование podhelper.rb
 podhelper = File.join(flutter_root, 'packages', 'flutter_tools', 'bin', 'podhelper.rb')
 unless File.exist?(podhelper)
-  puts "⚠️  podhelper.rb not found, running flutter pub get..."
+  puts "⚠️  podhelper.rb not found, running 'flutter pub get'..."
   system("flutter pub get")
 end
 
@@ -26,9 +22,6 @@ target 'Runner' do
   use_modular_headers!
 
   flutter_ios_podfile_setup
-
-  pod 'Flutter', :path => '../flutter'
-
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
