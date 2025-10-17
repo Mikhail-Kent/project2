@@ -1,55 +1,37 @@
 workflows:
-  ios_unsigned:
-    name: iOS unsigned build
+  build_ios_unsigned:
+    name: Build iOS unsigned .ipa
+    max_build_duration: 60
     environment:
       flutter: stable
       xcode: latest
-      cocoapods: default
     scripts:
-      - name: "Clean project"
+      - name: Clean and get dependencies
         script: |
           flutter clean
-          rm -rf ios/Pods ios/Podfile.lock pubspec.lock
-      - name: "Get Flutter packages (creates Generated.xcconfig)"
-        script: |
           flutter pub get
-          ls ios/Flutter || echo "Flutter folder will be generated on build"
-      - name: "Run pod install (after flutter pub get)"
-        script: |
           cd ios
+          rm -rf Podfile.lock Pods
           pod repo update
           pod install
           cd ..
-      - name: "Build unsigned iOS .ipa (no codesign)"
+      - name: Disable code signing in Xcode project
         script: |
-          # Сборка для симулятора (не требует подписи)
-          flutter build ios --simulator --release
-
-          # Создаём .ipa вручную
-          mkdir -p build/ios/ipa/Payload
-          cp -r build/ios/iphonesimulator/Runner.app build/ios/ipa/Payload/
-          cd build/ios/ipa
-          zip -r SmartAlarm.ipa Payload
-      - name: "Build unsigned iOS .ipa (no codesign)"
+          cd ios
+          sed -i '' 's/DEVELOPMENT_TEAM = [A-Z0-9]*;/DEVELOPMENT_TEAM = "";/g' Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGN_IDENTITY = "iPhone Developer";/CODE_SIGN_IDENTITY = "";/g' Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' Runner.xcodeproj/project.pbxproj
+          cd ..
+      - name: Build unsigned iOS .ipa (no codesign)
         script: |
-          # Сборка реального device-билда (без подписи)
           flutter build ios --no-codesign
-          
-          # Проверяем, что Runner.app собран
-          if [ ! -d "build/ios/iphoneos/Runner.app" ]; then
-            echo "❌ Runner.app not found — build failed."
-            exit 1
-          fi
-          
-          # Упаковываем .ipa
           mkdir -p build/ios/ipa/Payload
           cp -r build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
           cd build/ios/ipa
           zip -r Runner.ipa Payload
-
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
       email:
         recipients:
-          - your@email.com
+          - your_email@example.com
