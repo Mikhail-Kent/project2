@@ -1,98 +1,27 @@
 workflows:
-  build_unsigned_ios:
-    name: Build unsigned iOS .ipa (no codesign)
-    max_build_duration: 120
+  ios_unsigned:
+    name: iOS unsigned build
     environment:
-      # macOS runner
       flutter: stable
-      # если хотите конкретную версию flutter:
-      # flutter: 3.10.6
+      xcode: latest
       vars:
-        LC_ALL: "en_US.UTF-8"
+        APP_NAME: "Runner"
     scripts:
-      - name: Checkout is automatic in Codemagic
-      - name: Show environment
-        script: |
-          echo "=== system info ==="
-          sw_vers
-          xcodebuild -version
-          flutter --version
-      - name: Install CocoaPods (optional / cache safe)
-        script: |
-          if ! command -v pod >/dev/null 2>&1; then
-            echo "Installing CocoaPods"
-            sudo gem install cocoapods -v '>=1.11' --no-document
-          fi
-          pod --version || true
-      - name: Ensure flutter packages (IMPORTANT: generates Generated.xcconfig)
+      - name: "Ensure flutter packages (important: generates generated.xcconfig)"
         script: |
           flutter pub get
-          # verify Generated.xcconfig exists
-          if [ ! -f ios/Flutter/Generated.xcconfig ]; then
-            echo "ERROR: ios/Flutter/Generated.xcconfig not found after flutter pub get"
-            ls -la ios/Flutter || true
-            exit 1
-          fi
-      - name: iOS pods install
+      - name: "Install pods"
         script: |
           cd ios
-          # make sure repo is up to date (may take time first run)
-          pod repo update || true
-          pod install --verbose
+          pod install
           cd ..
-      - name: Build Flutter iOS (build app artifacts)
-        script: |
-          # build the Flutter iOS bundle (optional but helpful)
-          flutter build ios --no-codesign --release || true
-          # Note: Recent Flutter may warn about --no-codesign being deprecated.
-          # We will perform Xcode archive below with explicit CODE_SIGNING flags.
-      - name: Archive with xcodebuild (unsigned)
+      - name: "Build unsigned .ipa"
         script: |
           set -e
-          APP_NAME="Runner"
-          IOS_WORKSPACE="ios/Runner.xcworkspace"
-          SCHEME="Runner"
-          ARCHIVE_PATH="build/ios/archive/${APP_NAME}.xcarchive"
-          echo "Cleaning previous builds"
-          rm -rf build/ios || true
-          mkdir -p "$(dirname "$ARCHIVE_PATH")"
-          # Use xcodebuild to archive but disable codesigning
-          xcodebuild -workspace "$IOS_WORKSPACE" \
-            -scheme "$SCHEME" \
-            -configuration Release \
-            -sdk iphoneos \
-            -archivePath "$ARCHIVE_PATH" \
-            clean archive \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            OTHER_CODE_SIGN_FLAGS="--no-codesign" \
-            | xcpretty || cat
-      - name: Export unsigned .app and create .ipa
-        script: |
-          set -e
-          APP_NAME="Runner"
-          ARCHIVE_PATH="build/ios/archive/${APP_NAME}.xcarchive"
-          APP_PATH="${ARCHIVE_PATH}/Products/Applications/${APP_NAME}.app"
-          IPA_OUT_DIR="build/ios/ipa"
-          mkdir -p "$IPA_OUT_DIR"
-          if [ ! -d "$APP_PATH" ]; then
-            echo "ERROR: App not found at expected path: $APP_PATH"
-            ls -la "${ARCHIVE_PATH}/Products/Applications" || true
-            exit 1
-          fi
-          # Create Payload and pack into unsigned ipa
-          PAYLOAD_DIR="${IPA_OUT_DIR}/Payload"
-          rm -rf "$PAYLOAD_DIR" "${IPA_OUT_DIR}/${APP_NAME}.ipa"
-          mkdir -p "$PAYLOAD_DIR"
-          cp -R "$APP_PATH" "$PAYLOAD_DIR/"
-          pushd "$IPA_OUT_DIR" >/dev/null
-          zip -r "${APP_NAME}.zip" Payload
-          mv "${APP_NAME}.zip" "${APP_NAME}.ipa"
-          popd >/dev/null
-          echo "Unsigned .ipa created at: ${IPA_OUT_DIR}/${APP_NAME}.ipa"
-      - name: Publish artifact
-        script: |
-          ls -la build/ios/ipa || true
+          flutter build ios --no-codesign
+          mkdir -p build/ios/ipa
+          cd build/ios/ipa
+          cp -r ../iphoneos/Payload .
+          zip -r ${APP_NAME}.ipa Payload
     artifacts:
       - build/ios/ipa/*.ipa
