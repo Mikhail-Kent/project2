@@ -4,24 +4,32 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
-      vars:
-        APP_NAME: "Runner"
+      cocoapods: default
     scripts:
-      - name: "Ensure flutter packages (important: generates generated.xcconfig)"
+      - name: "Clean project"
+        script: |
+          flutter clean
+          rm -rf ios/Pods ios/Podfile.lock pubspec.lock
+      - name: "Get Flutter packages (creates Generated.xcconfig)"
         script: |
           flutter pub get
-      - name: "Install pods"
+          ls ios/Flutter || echo "Flutter folder will be generated on build"
+      - name: "Run pod install (after flutter pub get)"
         script: |
           cd ios
+          pod repo update
           pod install
           cd ..
-      - name: "Build unsigned .ipa"
+      - name: "Build unsigned iOS .ipa (no codesign)"
         script: |
-          set -e
-          flutter build ios --no-codesign
+          flutter build ios --release --no-codesign
           mkdir -p build/ios/ipa
           cd build/ios/ipa
           cp -r ../iphoneos/Payload .
-          zip -r ${APP_NAME}.ipa Payload
+          zip -r SmartAlarm.ipa Payload
     artifacts:
       - build/ios/ipa/*.ipa
+    publishing:
+      email:
+        recipients:
+          - your@email.com
