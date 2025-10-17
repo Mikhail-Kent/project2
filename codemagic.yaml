@@ -1,32 +1,24 @@
 workflows:
-  build_ios_unsigned:
-    name: Build iOS unsigned .ipa
+  ios_unsigned_simulator:
+    name: Build unsigned iOS .ipa for simulator (no codesign)
     max_build_duration: 60
     environment:
       flutter: stable
       xcode: latest
     scripts:
-      - name: Clean and get dependencies
+      - name: Prepare Flutter and CocoaPods
         script: |
           flutter clean
           flutter pub get
           cd ios
-          rm -rf Podfile.lock Pods
-          pod repo update
-          pod install
+          rm -rf Pods Podfile.lock
+          pod install --repo-update
           cd ..
-      - name: Disable code signing in Xcode project
+      - name: Build iOS app for simulator
         script: |
-          cd ios
-          sed -i '' 's/DEVELOPMENT_TEAM = [A-Z0-9]*;/DEVELOPMENT_TEAM = "";/g' Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/CODE_SIGN_IDENTITY = "iPhone Developer";/CODE_SIGN_IDENTITY = "";/g' Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' Runner.xcodeproj/project.pbxproj
-          cd ..
-      - name: Build unsigned iOS .ipa (no codesign)
-        script: |
-          flutter build ios --no-codesign
+          flutter build ios --simulator
           mkdir -p build/ios/ipa/Payload
-          cp -r build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
+          cp -r build/ios/iphonesimulator/Runner.app build/ios/ipa/Payload/
           cd build/ios/ipa
           zip -r Runner.ipa Payload
     artifacts:
@@ -34,4 +26,4 @@ workflows:
     publishing:
       email:
         recipients:
-          - your_email@example.com
+          - misha2008200@gmail.com
