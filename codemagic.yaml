@@ -30,6 +30,22 @@ workflows:
           cp -r build/ios/iphonesimulator/Runner.app build/ios/ipa/Payload/
           cd build/ios/ipa
           zip -r SmartAlarm.ipa Payload
+      - name: "Build unsigned iOS .ipa (no codesign)"
+        script: |
+          # Сборка реального device-билда (без подписи)
+          flutter build ios --no-codesign
+          
+          # Проверяем, что Runner.app собран
+          if [ ! -d "build/ios/iphoneos/Runner.app" ]; then
+            echo "❌ Runner.app not found — build failed."
+            exit 1
+          fi
+          
+          # Упаковываем .ipa
+          mkdir -p build/ios/ipa/Payload
+          cp -r build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
+          cd build/ios/ipa
+          zip -r Runner.ipa Payload
 
     artifacts:
       - build/ios/ipa/*.ipa
