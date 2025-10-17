@@ -1,12 +1,12 @@
 workflows:
-  ios_unsigned_simulator:
-    name: Build unsigned iOS .ipa for simulator (no codesign)
+  ios_unsigned_debug:
+    name: Build unsigned iOS .ipa (debug or release, auto-locate .app)
     max_build_duration: 60
     environment:
       flutter: stable
       xcode: latest
     scripts:
-      - name: Prepare Flutter and CocoaPods
+      - name: Prepare environment
         script: |
           flutter clean
           flutter pub get
@@ -14,15 +14,30 @@ workflows:
           rm -rf Pods Podfile.lock
           pod install --repo-update
           cd ..
-      - name: Build iOS app for simulator
+      - name: Build for simulator (no signing)
         script: |
           flutter build ios --simulator
+      - name: Locate .app and create .ipa
+        script: |
+          echo "Checking build outputs..."
+          find build/ios -name "*.app" || echo "⚠️ No .app found!"
+
+          APP_PATH=$(find build/ios -name "Runner.app" | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "❌ Runner.app not found! Build failed."
+            exit 1
+          fi
+
+          echo "✅ Found app at: $APP_PATH"
           mkdir -p build/ios/ipa/Payload
-          cp -r build/ios/iphonesimulator/Runner.app build/ios/ipa/Payload/
+          cp -r "$APP_PATH" build/ios/ipa/Payload/
           cd build/ios/ipa
           zip -r Runner.ipa Payload
+          echo "✅ IPA created at build/ios/ipa/Runner.ipa"
     artifacts:
       - build/ios/ipa/*.ipa
+      - build/ios/**/*.app
+      - build/ios/**/*.xcarchive
     publishing:
       email:
         recipients:
