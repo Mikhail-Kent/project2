@@ -22,11 +22,15 @@ workflows:
           cd ..
       - name: "Build unsigned iOS .ipa (no codesign)"
         script: |
-          flutter build ios --release --no-codesign
-          mkdir -p build/ios/ipa
+          # Сборка для симулятора (не требует подписи)
+          flutter build ios --simulator --release
+
+          # Создаём .ipa вручную
+          mkdir -p build/ios/ipa/Payload
+          cp -r build/ios/iphonesimulator/Runner.app build/ios/ipa/Payload/
           cd build/ios/ipa
-          cp -r ../iphoneos/Payload .
           zip -r SmartAlarm.ipa Payload
+
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
