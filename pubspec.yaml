@@ -1,0 +1,33 @@
+name: my_smart_alarm
+description: Smart Alarm - Flutter demo
+publish_to: "none"
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.0.5
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.0.15
+  flutter_local_notifications: 19.5.0
+  timezone: ^0.10.0
+  flutter_native_timezone: ^2.0.0
+  just_audio: ^0.9.34
+  record: ^5.0.5
+  permission_handler: ^10.4.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/sounds/wake_tone_default.mp3
+    - assets/sounds/digital_alarm.mp3
+    - assets/sounds/soft_bell.mp3
